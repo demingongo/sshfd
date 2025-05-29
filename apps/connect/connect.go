@@ -9,6 +9,7 @@ import (
 	"sshfd/globals"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/viper"
 )
 
@@ -56,6 +57,16 @@ func Run() {
 			line := r.FindString(s)
 			if line != "" {
 				hosts = append(hosts, r2.ReplaceAllString(line, ""))
+			}
+		}
+
+		form := runFormSelectHost(
+			"",
+			hosts,
+		)
+		if form.State == huh.StateCompleted {
+			if host = form.Get("host").(string); host != "" {
+				logger.Debug(fmt.Sprintf("selected \"%s\"", host))
 			}
 		}
 
