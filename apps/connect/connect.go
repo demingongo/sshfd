@@ -123,7 +123,7 @@ func loadHostConfigs() map[string]HostConfig {
 			if !found {
 				line = rUser.FindString(trimmedLine)
 				if line != "" {
-					host.Port = strings.Trim(rUser2.ReplaceAllString(line, ""), " ")
+					host.User = strings.Trim(rUser2.ReplaceAllString(line, ""), " ")
 					found = true
 				}
 			}
@@ -131,7 +131,7 @@ func loadHostConfigs() map[string]HostConfig {
 			if !found {
 				line = rIdentityFile.FindString(trimmedLine)
 				if line != "" {
-					host.Port = strings.Trim(rIdentityFile2.ReplaceAllString(line, ""), " ")
+					host.IdentityFile = strings.Trim(rIdentityFile2.ReplaceAllString(line, ""), " ")
 					found = true
 				}
 			}
