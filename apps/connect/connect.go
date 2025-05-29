@@ -19,7 +19,7 @@ type HostConfig struct {
 	Port         string
 	User         string
 	IdentityFile string
-	OtherConfig  []string
+	Config       map[string]string
 }
 
 func loadConfig() string {
@@ -45,49 +45,11 @@ func loadHostConfigs() map[string]HostConfig {
 	configLines := strings.Split(strings.ReplaceAll(loadConfig(), "\r\n", "\n"), "\n")
 
 	r, err := regexp.Compile("Host ([^*]+)")
-
 	if err != nil {
 		logger.Fatalf("%v", err)
 	}
 
 	rHost, err := regexp.Compile("Host ")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-
-	rHostname, err := regexp.Compile("Hostname ([^*]+)")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-
-	rHostname2, err := regexp.Compile("Hostname ")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-
-	rPort, err := regexp.Compile("Port ([^*]+)")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-	rPort2, err := regexp.Compile("Port ")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-
-	rUser, err := regexp.Compile("User ([^*]+)")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-	rUser2, err := regexp.Compile("User ")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-
-	rIdentityFile, err := regexp.Compile("IdentityFile ([^*]+)")
-	if err != nil {
-		logger.Fatalf("%v", err)
-	}
-	rIdentityFile2, err := regexp.Compile("IdentityFile ")
 	if err != nil {
 		logger.Fatalf("%v", err)
 	}
@@ -100,44 +62,34 @@ func loadHostConfigs() map[string]HostConfig {
 			if host.Host != "" {
 				result[host.Host] = host
 			}
-			host = HostConfig{}
-			host.Host = strings.Trim(rHost.ReplaceAllString(line, ""), " ")
-		} else {
+			host = HostConfig{
+				Host:   strings.Trim(rHost.ReplaceAllString(line, ""), " "),
+				Config: make(map[string]string),
+			}
+		} else if host.Host != "" {
 			trimmedLine := strings.Trim(s, " ")
-			found := false
 
-			line = rHostname.FindString(trimmedLine)
-			if line != "" {
-				host.Hostname = strings.Trim(rHostname2.ReplaceAllString(line, ""), " ")
-				found = true
-			}
-
-			if !found {
-				line = rPort.FindString(trimmedLine)
-				if line != "" {
-					host.Port = strings.Trim(rPort2.ReplaceAllString(line, ""), " ")
-					found = true
+			if trimmedLine == "Host *" {
+				if host.Host != "" {
+					result[host.Host] = host
 				}
-			}
+				host = HostConfig{}
+			} else if trimmedLine != "" {
+				param := strings.Split(trimmedLine, " ")
+				key := strings.Trim(param[0], " ")
+				value := strings.Trim(param[1], " ")
 
-			if !found {
-				line = rUser.FindString(trimmedLine)
-				if line != "" {
-					host.User = strings.Trim(rUser2.ReplaceAllString(line, ""), " ")
-					found = true
+				if key == "Hostname" {
+					host.Hostname = value
+				} else if key == "Port" {
+					host.Port = value
+				} else if key == "User" {
+					host.User = value
+				} else if key == "IdentityFile" {
+					host.IdentityFile = value
+				} else {
+					host.Config[key] = value
 				}
-			}
-
-			if !found {
-				line = rIdentityFile.FindString(trimmedLine)
-				if line != "" {
-					host.IdentityFile = strings.Trim(rIdentityFile2.ReplaceAllString(line, ""), " ")
-					found = true
-				}
-			}
-
-			if !found {
-				host.OtherConfig = append(host.OtherConfig, strings.Trim(s, " "))
 			}
 		}
 	}
