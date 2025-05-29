@@ -1,7 +1,7 @@
 package stat
 
 import (
-	"os"
+	"bytes"
 
 	"sshfd/globals"
 	"sshfd/utils"
@@ -37,17 +37,17 @@ func Run() {
 			logger.Fatal("Request for pseudo terminal failed:", err)
 		}
 
-		session.Stdout = os.Stdout
-		session.Stdin = os.Stdin
-		session.Stderr = os.Stderr
+		//session.Stdout = os.Stdout
+		//session.Stderr = os.Stderr
 
-		if err := session.Shell(); err != nil {
-			logger.Fatal("Failed to start shell:", err)
-		}
+		var b bytes.Buffer  // import "bytes"
+		session.Stdout = &b // get output
 
-		if err := session.Wait(); err != nil {
+		if err := session.Run("df"); err != nil {
 			logger.Fatal("Failed to run:", err)
 		}
+
+		logger.Info(b.String())
 
 	} else {
 		logger.Fatal("No host")
