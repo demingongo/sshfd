@@ -1,4 +1,4 @@
-package connect
+package utils
 
 import (
 	formmmodel "sshfd/bubbles/formmodel"

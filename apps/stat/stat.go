@@ -1,4 +1,4 @@
-package connect
+package stat
 
 import (
 	"os"
