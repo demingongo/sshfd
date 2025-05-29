@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"os"
+	"sshfd/apps/connect"
+	"sshfd/globals"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,7 +19,10 @@ var rootCmd = &cobra.Command{
 	Long:  ``,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		globals.LoadGlobals()
+		connect.Run()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
