@@ -192,7 +192,12 @@ func Run() {
 		}
 
 		if val.IdentityFile != "" {
-			privateKey, err := os.ReadFile(val.IdentityFile)
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				logger.Fatalf("UserHomeDir: %v", err)
+			}
+			privateKeyPath := strings.ReplaceAll(val.IdentityFile, "~", homeDir)
+			privateKey, err := os.ReadFile(privateKeyPath)
 			if err != nil {
 				logger.Fatalf("Unable to read private key: %v", err)
 			}
