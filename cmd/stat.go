@@ -4,7 +4,8 @@ Copyright © 2025 demingongo
 package cmd
 
 import (
-	"fmt"
+	"sshfd/apps/stat"
+	"sshfd/globals"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,7 +17,8 @@ var statCmd = &cobra.Command{
 	Short: "Remote host statistics",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stat called")
+		globals.LoadGlobals()
+		stat.Run()
 	},
 }
 
