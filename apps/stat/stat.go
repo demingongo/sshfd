@@ -37,13 +37,11 @@ func Run() {
 			logger.Fatal("Request for pseudo terminal failed:", err)
 		}
 
-		//session.Stdout = os.Stdout
-		//session.Stderr = os.Stderr
-
-		var b bytes.Buffer  // import "bytes"
+		var b bytes.Buffer
 		session.Stdout = &b // get output
 
-		if err := session.Run("df"); err != nil {
+		if err := session.Run("df -Th"); err != nil {
+			logger.Error(b.String())
 			logger.Fatal("Failed to run:", err)
 		}
 
