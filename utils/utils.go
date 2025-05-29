@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"regexp"
 	"sshfd/globals"
@@ -115,6 +116,8 @@ func LoadHostConfig(host string) (HostConfig, bool) {
 		for k := range hosts {
 			keys = append(keys, k)
 		}
+
+		slices.Sort(keys)
 
 		form := runFormSelectHost(
 			"",
