@@ -1,6 +1,6 @@
 module sshfd
 
-go 1.24.3
+go 1.23.9
 
 require golang.org/x/term v0.32.0
 
