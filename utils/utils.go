@@ -6,8 +6,9 @@ import (
 	"slices"
 
 	"regexp"
-	"sshfd/globals"
 	"strings"
+
+	"github.com/demingongo/sshfd/globals"
 
 	"github.com/charmbracelet/huh"
 	"golang.org/x/crypto/ssh"

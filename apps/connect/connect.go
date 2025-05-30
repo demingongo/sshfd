@@ -3,8 +3,8 @@ package connect
 import (
 	"os"
 
-	"sshfd/globals"
-	"sshfd/utils"
+	"github.com/demingongo/sshfd/globals"
+	"github.com/demingongo/sshfd/utils"
 
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"

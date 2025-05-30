@@ -5,8 +5,9 @@ package cmd
 
 import (
 	"os"
-	"sshfd/apps/connect"
-	"sshfd/globals"
+
+	"github.com/demingongo/sshfd/apps/connect"
+	"github.com/demingongo/sshfd/globals"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

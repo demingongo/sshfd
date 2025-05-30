@@ -1,4 +1,4 @@
-module sshfd
+module github.com/demingongo/sshfd
 
 go 1.23.9
 

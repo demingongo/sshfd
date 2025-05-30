@@ -3,7 +3,7 @@ Copyright © 2025 demingongo
 */
 package main
 
-import "sshfd/cmd"
+import "github.com/demingongo/sshfd/cmd"
 
 func main() {
 	cmd.Execute()

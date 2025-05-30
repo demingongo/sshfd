@@ -4,8 +4,8 @@ Copyright © 2025 demingongo
 package cmd
 
 import (
-	"sshfd/apps/stat"
-	"sshfd/globals"
+	"github.com/demingongo/sshfd/apps/stat"
+	"github.com/demingongo/sshfd/globals"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

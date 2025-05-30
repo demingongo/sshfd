@@ -1,8 +1,8 @@
 package utils
 
 import (
-	formmmodel "sshfd/bubbles/formmodel"
-	"sshfd/globals"
+	formmmodel "github.com/demingongo/sshfd/bubbles/formmodel"
+	"github.com/demingongo/sshfd/globals"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
