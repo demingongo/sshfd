@@ -266,9 +266,6 @@ func Run() {
 			diffTotal := cpuTotal - totalPrev
 			cpuPercent = (float32(1000*(diffTotal-diffIdle)) / float32(diffTotal+5)) / 10
 
-			logger.Debugf("diffIdle %v", diffIdle)
-			logger.Debugf("diffTotal %v", diffTotal)
-
 			totalPrev = cpuTotal
 			idlePrev = cpuIdle
 		}
