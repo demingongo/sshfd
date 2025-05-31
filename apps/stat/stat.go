@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/huh/spinner"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/demingongo/sshfd/globals"
 	"github.com/demingongo/sshfd/utils"
 
@@ -22,6 +24,10 @@ type DiskStat struct {
 	MountedOn  string
 }
 
+func (m DiskStat) String() string {
+	return m.MountedOn + " (" + m.Type + ") " + m.Used + "/" + m.Size + "  -  " + m.UsePercent
+}
+
 type MemStat struct {
 	Type      string
 	Total     string
@@ -31,6 +37,39 @@ type MemStat struct {
 	Cache     string
 	Available string
 }
+
+func (m MemStat) String() string {
+	return m.Type + " " + m.Used + "/" + m.Total
+}
+
+var (
+	subtle  = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
+	special = lipgloss.AdaptiveColor{Light: "230", Dark: "#010102"}
+	// Titles.
+
+	titleStyle = lipgloss.NewStyle().
+			Padding(0, 1).
+			Background(lipgloss.Color("7")).
+			Foreground(special)
+
+	subtitleStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderTop(true).
+			BorderForeground(subtle).
+			Foreground(lipgloss.Color("6")).
+			Bold(true)
+
+	// Info block.
+
+	infoStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("7")).
+			BorderTop(true).
+			BorderLeft(true).
+			BorderRight(true).
+			BorderBottom(true).
+			Width(globals.InfoWidth)
+)
 
 func Run() {
 	logger := globals.Logger
@@ -64,7 +103,7 @@ func Run() {
 			logger.Fatalf("Failed to run: %v", err)
 		}
 
-		logger.Debug(b.String())
+		logger.Debugf("\n%v", b.String())
 
 		// get the lines and remove the first line ([1:]) as it is the columns header
 		dfLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")[1:]
@@ -104,7 +143,7 @@ func Run() {
 			})
 		}
 
-		logger.Info(fmt.Sprintf("%v", disksStats))
+		logger.Debug(fmt.Sprintf("%v", disksStats))
 
 		mSession, err := utils.CreateSession(client)
 		if err != nil {
@@ -124,7 +163,7 @@ func Run() {
 			logger.Fatalf("Failed to run: %v", err)
 		}
 
-		logger.Debug(b.String())
+		logger.Debugf("\n%v", b.String())
 
 		// get the lines and remove the first line ([1:]) as it is the columns header
 		memLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")[1:]
@@ -175,7 +214,7 @@ func Run() {
 			memStats = append(memStats, s)
 		}
 
-		logger.Info(fmt.Sprintf("%v", memStats))
+		logger.Debug(fmt.Sprintf("%v", memStats))
 
 		cpuSession, err := utils.CreateSession(client)
 		if err != nil {
@@ -190,87 +229,117 @@ func Run() {
 		b.Reset() // empty buffer
 		cpuSession.Stdout = &b
 
-		if err := cpuSession.Run("grep --max-count=1 '^cpu.' /proc/stat && sleep 1 && grep --max-count=1 '^cpu.' /proc/stat"); err != nil {
-			logger.Error(b.String())
-			logger.Fatalf("Failed to run: %v", err)
-		}
-
-		logger.Debug(b.String())
-
-		// get cpu metrics
-		cpuLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")
-
-		totalPrev := 0
-		idlePrev := 0
-
 		cpuPercent := float32(0)
 
-		for _, line := range cpuLines {
-			cpuMetrics := filter(
-				strings.Split(strings.Trim(line, ""), " "),
-				isNotEmpty,
-			)
+		var cpuErr error
 
-			if len(cpuMetrics) < 8 {
-				break
-			}
+		_ = spinner.New().
+			Type(spinner.MiniDot).
+			Title(" Please wait ...").
+			Action(func() {
+				if err := cpuSession.Run("grep --max-count=1 '^cpu.' /proc/stat && sleep 1 && grep --max-count=1 '^cpu.' /proc/stat"); err != nil {
+					logger.Error(b.String())
+					cpuErr = err
+				}
 
-			cpuMetrics = cpuMetrics[1:]
+				logger.Debugf("\n%v", b.String())
 
-			logger.Debugf("cpuMetrics %v", cpuMetrics)
+				// get cpu metrics
+				cpuLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")
 
-			cpuUser, err := strconv.Atoi(cpuMetrics[0])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuNice, err := strconv.Atoi(cpuMetrics[1])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuSystem, err := strconv.Atoi(cpuMetrics[2])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuIdle, err := strconv.Atoi(cpuMetrics[3])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuIOwait, err := strconv.Atoi(cpuMetrics[4])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuIrq, err := strconv.Atoi(cpuMetrics[5])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuSoftirq, err := strconv.Atoi(cpuMetrics[6])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			cpuSteal, err := strconv.Atoi(cpuMetrics[7])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
+				totalPrev := 0
+				idlePrev := 0
 
-			cpuTotal := cpuUser + cpuNice + cpuSystem + cpuIdle + cpuIOwait + cpuIrq + cpuSoftirq + cpuSteal
+				for _, line := range cpuLines {
+					cpuMetrics := filter(
+						strings.Split(strings.Trim(line, ""), " "),
+						isNotEmpty,
+					)
 
-			diffIdle := cpuIdle - idlePrev
-			diffTotal := cpuTotal - totalPrev
-			cpuPercent = (float32(1000*(diffTotal-diffIdle)) / float32(diffTotal+5)) / 10
+					if len(cpuMetrics) < 8 {
+						break
+					}
 
-			totalPrev = cpuTotal
-			idlePrev = cpuIdle
+					cpuMetrics = cpuMetrics[1:]
+
+					logger.Debugf("cpuMetrics %v", cpuMetrics)
+
+					cpuUser, err := strconv.Atoi(cpuMetrics[0])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuNice, err := strconv.Atoi(cpuMetrics[1])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuSystem, err := strconv.Atoi(cpuMetrics[2])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuIdle, err := strconv.Atoi(cpuMetrics[3])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuIOwait, err := strconv.Atoi(cpuMetrics[4])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuIrq, err := strconv.Atoi(cpuMetrics[5])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuSoftirq, err := strconv.Atoi(cpuMetrics[6])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+					cpuSteal, err := strconv.Atoi(cpuMetrics[7])
+					if err != nil {
+						logger.Error(err)
+						break
+					}
+
+					cpuTotal := cpuUser + cpuNice + cpuSystem + cpuIdle + cpuIOwait + cpuIrq + cpuSoftirq + cpuSteal
+
+					diffIdle := cpuIdle - idlePrev
+					diffTotal := cpuTotal - totalPrev
+					cpuPercent = (float32(1000*(diffTotal-diffIdle)) / float32(diffTotal+5)) / 10
+
+					totalPrev = cpuTotal
+					idlePrev = cpuIdle
+				}
+			}).
+			Run()
+
+		if cpuErr != nil {
+			logger.Fatalf("Failed to run: %v", cpuErr)
 		}
 
-		logger.Infof("%v", cpuPercent)
+		logger.Debugf("%v", cpuPercent)
+
+		content := lipgloss.JoinVertical(lipgloss.Left,
+			titleStyle.Render("STATS"),
+			subtitleStyle.Render("CPU "),
+			strconv.FormatFloat(float64(cpuPercent), 'f', 2, 32)+"%",
+			subtitleStyle.Render("Memory"),
+			strings.Join(ArrayMap(memStats, func(v MemStat) string {
+				return v.String()
+			}), "\n"),
+			subtitleStyle.Render("Disks"),
+			strings.Join(ArrayMap(disksStats, func(v DiskStat) string {
+				return v.String()
+			}), "\n"),
+		)
+
+		result := infoStyle.Width(globals.InfoWidth).Render(content)
+
+		fmt.Println(result)
 	} else {
 		logger.Fatal("No host")
 	}
@@ -285,4 +354,12 @@ func filter[T any](ss []T, test func(T) bool) (ret []T) {
 		}
 	}
 	return
+}
+
+func ArrayMap[TSource, TTarget any](source []TSource, trans func(TSource) TTarget) []TTarget {
+	target := make([]TTarget, 0, len(source))
+	for _, s := range source {
+		target = append(target, trans(s))
+	}
+	return target
 }
