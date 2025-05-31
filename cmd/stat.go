@@ -8,7 +8,6 @@ import (
 	"github.com/demingongo/sshfd/globals"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // statCmd represents the stat command
@@ -34,7 +33,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// statCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	statCmd.PersistentFlags().String("host", "", "host")
-
-	viper.BindPFlag("host", statCmd.PersistentFlags().Lookup("host"))
 }
