@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/demingongo/sshfd/globals"
 	"github.com/demingongo/sshfd/utils"
 
@@ -45,6 +46,12 @@ func (m MemStat) String() string {
 var (
 	subtle  = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	special = lipgloss.AdaptiveColor{Light: "230", Dark: "#010102"}
+
+	// Table cell.
+	tableCellStyle      = lipgloss.NewStyle().Align(lipgloss.Center).PaddingLeft(1).PaddingRight(1)
+	tableCellLeftStyle  = lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).PaddingRight(1)
+	tableCellRightStyle = lipgloss.NewStyle().Align(lipgloss.Right).PaddingLeft(1).PaddingRight(1)
+
 	// Titles.
 
 	titleStyle = lipgloss.NewStyle().
@@ -67,8 +74,7 @@ var (
 			BorderTop(true).
 			BorderLeft(true).
 			BorderRight(true).
-			BorderBottom(true).
-			Width(globals.InfoWidth)
+			BorderBottom(true)
 )
 
 func Run() {
@@ -328,16 +334,52 @@ func Run() {
 			subtitleStyle.Render("CPU "),
 			strconv.FormatFloat(float64(cpuPercent), 'f', 2, 32)+"%",
 			subtitleStyle.Render("Memory"),
-			strings.Join(ArrayMap(memStats, func(v MemStat) string {
-				return v.String()
-			}), "\n"),
+			/*
+				strings.Join(ArrayMap(memStats, func(v MemStat) string {
+					return v.String()
+				}), "\n"),
+			*/
+			table.New().Border(lipgloss.NormalBorder()).
+				StyleFunc(func(row, col int) lipgloss.Style {
+					switch {
+					case row != table.HeaderRow && col == 0:
+						return tableCellLeftStyle
+					default:
+						return tableCellRightStyle
+					}
+				}).
+				Headers("Type", "Used", "Total").
+				Rows(ArrayMap(memStats, func(v MemStat) []string {
+					return []string{v.Type, v.Used, v.Total}
+				})...).Render(),
 			subtitleStyle.Render("Disks"),
-			strings.Join(ArrayMap(disksStats, func(v DiskStat) string {
-				return v.String()
-			}), "\n"),
+			/*
+				strings.Join(ArrayMap(disksStats, func(v DiskStat) string {
+					return v.String()
+				}), "\n"),
+			*/
+			table.New().Border(lipgloss.NormalBorder()).
+				StyleFunc(func(row, col int) lipgloss.Style {
+					switch {
+					case row != table.HeaderRow && col == 0:
+						return tableCellLeftStyle
+					case row != table.HeaderRow && col == 3:
+						return tableCellRightStyle
+					default:
+						return tableCellStyle
+					}
+				}).
+				Headers("", "Type", "Used", "%").
+				Rows(ArrayMap(disksStats, func(v DiskStat) []string {
+					return []string{v.MountedOn, v.Type, v.Used + "/" + v.Size, v.UsePercent}
+				})...).Render(),
 		)
 
-		result := infoStyle.Width(globals.InfoWidth).Render(content)
+		result := infoStyle.
+			//Width(lipgloss.Width(content) + 4).
+			PaddingLeft(2).
+			PaddingRight(2).
+			Render(content)
 
 		fmt.Println(result)
 	} else {

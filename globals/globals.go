@@ -16,7 +16,6 @@ var (
 
 const (
 	FormWidth = 60
-	InfoWidth = 38
 
 	Width = 100
 
