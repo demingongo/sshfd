@@ -7,7 +7,6 @@ import (
 	"github.com/demingongo/sshfd/utils"
 
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh"
 )
 
 func Run() {
@@ -21,20 +20,14 @@ func Run() {
 		}
 		defer client.Close()
 
-		session, err := client.NewSession()
+		session, err := utils.CreateSession(client)
 		if err != nil {
 			logger.Fatalf("Failed to create a session: %v", err)
 		}
 		defer session.Close()
 
-		modes := ssh.TerminalModes{
-			ssh.ECHO:          0,     // disable echoing
-			ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-		}
-
-		if err := session.RequestPty("linux", 80, 40, modes); err != nil {
-			logger.Fatal("Request for pseudo terminal failed:", err)
+		if err := utils.RequestPty(session); err != nil {
+			logger.Fatalf("Request for pseudo terminal failed: %v", err)
 		}
 
 		session.Stdout = os.Stdout

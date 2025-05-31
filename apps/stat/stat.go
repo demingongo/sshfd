@@ -3,13 +3,13 @@ package stat
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/demingongo/sshfd/globals"
 	"github.com/demingongo/sshfd/utils"
 
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh"
 )
 
 type DiskStat struct {
@@ -20,6 +20,16 @@ type DiskStat struct {
 	Available  string
 	UsePercent string
 	MountedOn  string
+}
+
+type MemStat struct {
+	Type      string
+	Total     string
+	Used      string
+	Free      string
+	Shared    string
+	Cache     string
+	Available string
 }
 
 func Run() {
@@ -33,26 +43,31 @@ func Run() {
 		}
 		defer client.Close()
 
-		session, err := createSession(client)
+		var disksStats []DiskStat
+		var memStats []MemStat
+
+		session, err := utils.CreateSession(client)
 		if err != nil {
 			logger.Fatalf("Failed to create a session: %v", err)
 		}
 		defer session.Close()
+
+		if err := utils.RequestPty(session); err != nil {
+			logger.Fatalf("Request for pseudo terminal failed: %v", err)
+		}
 
 		var b bytes.Buffer
 		session.Stdout = &b // get output
 
 		if err := session.Run("df -Th"); err != nil {
 			logger.Error(b.String())
-			logger.Fatal("Failed to run:", err)
+			logger.Fatalf("Failed to run: %v", err)
 		}
 
 		logger.Debug(b.String())
 
 		// get the lines and remove the first line ([1:]) as it is the columns header
 		dfLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")[1:]
-
-		var disksStats []DiskStat
 
 		for _, line := range dfLines {
 			cols := filter(
@@ -91,26 +106,30 @@ func Run() {
 
 		logger.Info(fmt.Sprintf("%v", disksStats))
 
-		mSession, err := createSession(client)
+		mSession, err := utils.CreateSession(client)
 		if err != nil {
 			logger.Fatalf("Failed to create a session: %v", err)
 		}
 		defer mSession.Close()
+
+		if err := utils.RequestPty(mSession); err != nil {
+			logger.Fatalf("Request for pseudo terminal failed: %v", err)
+		}
 
 		b.Reset() // empty buffer
 		mSession.Stdout = &b
 
 		if err := mSession.Run("free -mh"); err != nil {
 			logger.Error(b.String())
-			logger.Fatal("Failed to run:", err)
+			logger.Fatalf("Failed to run: %v", err)
 		}
 
-		logger.Info(b.String())
+		logger.Debug(b.String())
 
 		// get the lines and remove the first line ([1:]) as it is the columns header
-		dfLines = strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")[1:]
+		memLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")[1:]
 
-		for _, line := range dfLines {
+		for _, line := range memLines {
 			cols := filter(
 				strings.Split(strings.Trim(line, ""), " "),
 				isNotEmpty,
@@ -120,7 +139,7 @@ func Run() {
 				continue
 			}
 
-			if cols[2] == "total" {
+			if cols[1] == "total" {
 				continue
 			}
 
@@ -134,9 +153,127 @@ func Run() {
 			* 6 = Available
 			 */
 
-			logger.Infof("%v", cols)
+			s := MemStat{
+				Type:  strings.TrimSuffix(cols[0], ":"),
+				Total: cols[1],
+				Used:  cols[2],
+				Free:  cols[3],
+			}
+
+			for i, metric := range cols[4:] {
+				if i == 0 {
+					s.Shared = metric
+				} else if i == 1 {
+					s.Cache = metric
+				} else if i == 2 {
+					s.Available = metric
+				} else {
+					break
+				}
+			}
+
+			memStats = append(memStats, s)
 		}
 
+		logger.Info(fmt.Sprintf("%v", memStats))
+
+		cpuSession, err := utils.CreateSession(client)
+		if err != nil {
+			logger.Fatalf("Failed to create a session: %v", err)
+		}
+		defer cpuSession.Close()
+
+		if err := utils.RequestPty(cpuSession); err != nil {
+			logger.Fatalf("Request for pseudo terminal failed: %v", err)
+		}
+
+		b.Reset() // empty buffer
+		cpuSession.Stdout = &b
+
+		if err := cpuSession.Run("grep --max-count=1 '^cpu.' /proc/stat && sleep 1 && grep --max-count=1 '^cpu.' /proc/stat"); err != nil {
+			logger.Error(b.String())
+			logger.Fatalf("Failed to run: %v", err)
+		}
+
+		logger.Debug(b.String())
+
+		// get cpu metrics
+		cpuLines := strings.Split(strings.ReplaceAll(b.String(), "\r\n", "\n"), "\n")
+
+		totalPrev := 0
+		idlePrev := 0
+
+		cpuPercent := float32(0)
+
+		for _, line := range cpuLines {
+			cpuMetrics := filter(
+				strings.Split(strings.Trim(line, ""), " "),
+				isNotEmpty,
+			)
+
+			if len(cpuMetrics) < 8 {
+				break
+			}
+
+			cpuMetrics = cpuMetrics[1:]
+
+			logger.Debugf("cpuMetrics %v", cpuMetrics)
+
+			cpuUser, err := strconv.Atoi(cpuMetrics[0])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuNice, err := strconv.Atoi(cpuMetrics[1])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuSystem, err := strconv.Atoi(cpuMetrics[2])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuIdle, err := strconv.Atoi(cpuMetrics[3])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuIOwait, err := strconv.Atoi(cpuMetrics[4])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuIrq, err := strconv.Atoi(cpuMetrics[5])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuSoftirq, err := strconv.Atoi(cpuMetrics[6])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			cpuSteal, err := strconv.Atoi(cpuMetrics[7])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+
+			cpuTotal := cpuUser + cpuNice + cpuSystem + cpuIdle + cpuIOwait + cpuIrq + cpuSoftirq + cpuSteal
+
+			diffIdle := cpuIdle - idlePrev
+			diffTotal := cpuTotal - totalPrev
+			cpuPercent = (float32(1000*(diffTotal-diffIdle)) / float32(diffTotal+5)) / 10
+
+			logger.Debugf("diffIdle %v", diffIdle)
+			logger.Debugf("diffTotal %v", diffTotal)
+
+			totalPrev = cpuTotal
+			idlePrev = cpuIdle
+		}
+
+		logger.Infof("%v", cpuPercent)
 	} else {
 		logger.Fatal("No host")
 	}
@@ -151,27 +288,4 @@ func filter[T any](ss []T, test func(T) bool) (ret []T) {
 		}
 	}
 	return
-}
-
-func createSession(client *ssh.Client) (*ssh.Session, error) {
-	logger := globals.Logger
-
-	session, err := client.NewSession()
-	if err != nil {
-		logger.Errorf("Failed to create a session: %v", err)
-		return session, err
-	}
-
-	modes := ssh.TerminalModes{
-		ssh.ECHO:          0,     // disable echoing
-		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-	}
-
-	if err := session.RequestPty("linux", 80, 40, modes); err != nil {
-		logger.Errorf("Request for pseudo terminal failed: %v", err)
-		return session, err
-	}
-
-	return session, err
 }

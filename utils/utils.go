@@ -182,3 +182,32 @@ func DialSsh(hc HostConfig) (*ssh.Client, error) {
 
 	return client, err
 }
+
+func CreateSession(client *ssh.Client) (*ssh.Session, error) {
+	logger := globals.Logger
+
+	session, err := client.NewSession()
+	if err != nil {
+		logger.Errorf("Failed to create a session: %v", err)
+		return session, err
+	}
+
+	return session, err
+}
+
+func RequestPty(session *ssh.Session) error {
+	logger := globals.Logger
+
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+
+	if err := session.RequestPty("linux", 80, 40, modes); err != nil {
+		logger.Errorf("Request for pseudo terminal failed: %v", err)
+		return err
+	}
+
+	return nil
+}
