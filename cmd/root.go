@@ -45,14 +45,11 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
-	rootCmd.PersistentFlags().Bool("dummy", false, "dummy run (no aws call)")
 	rootCmd.PersistentFlags().BoolP("colors", "c", false, "colorful forms")
 	rootCmd.PersistentFlags().String("host", "", "host")
 
-	viper.BindPFlag("dummy", rootCmd.PersistentFlags().Lookup("dummy"))
 	viper.BindPFlag("colors", rootCmd.PersistentFlags().Lookup("colors"))
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("host", rootCmd.PersistentFlags().Lookup("host"))
-	viper.SetDefault("dummy", false)
 	viper.SetDefault("verbose", false)
 }
