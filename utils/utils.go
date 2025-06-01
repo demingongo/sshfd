@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/bramvdbogaerde/go-scp"
 	"github.com/demingongo/sshfd/globals"
 
 	"github.com/charmbracelet/huh"
@@ -136,10 +137,8 @@ func LoadHostConfig(host string) (HostConfig, bool) {
 	return val, ok
 }
 
-func DialSsh(hc HostConfig) (*ssh.Client, error) {
+func createClientConfig(hc HostConfig) *ssh.ClientConfig {
 	logger := globals.Logger
-
-	logger.Debugf("DialSsh %v", hc)
 
 	config := &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
@@ -169,6 +168,16 @@ func DialSsh(hc HostConfig) (*ssh.Client, error) {
 			ssh.PublicKeys(signer),
 		}
 	}
+
+	return config
+}
+
+func DialSsh(hc HostConfig) (*ssh.Client, error) {
+	logger := globals.Logger
+
+	logger.Debugf("DialSsh %v", hc)
+
+	config := createClientConfig(hc)
 
 	hostname := hc.Hostname + ":"
 
@@ -210,4 +219,32 @@ func RequestPty(session *ssh.Session) error {
 	}
 
 	return nil
+}
+
+func CreateSCPClient(hc HostConfig) (*scp.Client, error) {
+	logger := globals.Logger
+
+	logger.Debugf("CreateSCPClient %v", hc)
+
+	config := createClientConfig(hc)
+
+	hostname := hc.Hostname + ":"
+
+	if hc.Port != "" {
+		hostname += hc.Port
+	} else {
+		hostname += "22"
+	}
+
+	// Create a new SCP client
+	client := scp.NewClient(hostname, config)
+
+	// Connect to the remote server
+	err := client.Connect()
+	if err != nil {
+		//fmt.Println("Couldn't establish a connection to the remote server ", err)
+		return &client, err
+	}
+
+	return &client, err
 }

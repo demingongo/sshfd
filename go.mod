@@ -4,6 +4,8 @@ go 1.23.9
 
 require golang.org/x/term v0.32.0
 
+require github.com/bramvdbogaerde/go-scp v1.5.0 // indirect
+
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
