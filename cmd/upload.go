@@ -36,8 +36,11 @@ func init() {
 
 	uploadCmd.PersistentFlags().StringP("source", "s", "", "source (local file)")
 	uploadCmd.PersistentFlags().StringP("target", "t", "", "target (remote path)")
+
 	uploadCmd.MarkPersistentFlagRequired("source")
 	uploadCmd.MarkPersistentFlagRequired("target")
+
+	uploadCmd.MarkPersistentFlagFilename("source")
 
 	viper.BindPFlag("source", uploadCmd.PersistentFlags().Lookup("source"))
 	viper.BindPFlag("target", uploadCmd.PersistentFlags().Lookup("target"))
