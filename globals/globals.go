@@ -14,6 +14,11 @@ var (
 	Logger *log.Logger
 )
 
+var (
+	LocalFileFlag  string
+	RemoteFileFlag string
+)
+
 const (
 	FormWidth = 60
 

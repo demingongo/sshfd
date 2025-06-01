@@ -1,4 +1,4 @@
-package upload
+package download
 
 import (
 	"context"
@@ -17,11 +17,11 @@ func Run() {
 	remoteFile := viper.GetString("remoteFile")
 
 	if localFile == "" {
-		logger.Fatal("Missing local file (source)")
+		logger.Fatal("Missing local file path (target)")
 	}
 
 	if remoteFile == "" {
-		logger.Fatal("Missing remote file path (target)")
+		logger.Fatal("Missing remote file (source)")
 	}
 
 	logger.Debug(fmt.Sprintf("localFile %s", localFile))
@@ -34,8 +34,8 @@ func Run() {
 		}
 		defer client.Close()
 
-		// Open the localFile file
-		f, _ := os.Open(localFile)
+		// Open the source file
+		f, _ := os.Create(localFile)
 
 		// Close the file after it has been copied
 		defer f.Close()
@@ -44,13 +44,13 @@ func Run() {
 		// Usage: CopyFromFile(context, file, remotePath, permission)
 
 		// the context can be adjusted to provide time-outs or inherit from other contexts if this is embedded in a larger application.
-		err = client.CopyFromFile(context.Background(), *f, remoteFile, "0644")
+		err = client.CopyFromRemote(context.Background(), f, remoteFile)
 
 		if err != nil {
 			logger.Fatalf("Error while copying file: %v", err)
 		}
 
-		logger.Info(fmt.Sprintf("File uploaded to %s:%s", val.Host, remoteFile))
+		logger.Info(fmt.Sprintf("File downloaded to %s", localFile))
 
 	} else {
 		logger.Fatal("No host")

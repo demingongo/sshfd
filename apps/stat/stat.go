@@ -55,6 +55,7 @@ var (
 	// Titles.
 
 	titleStyle = lipgloss.NewStyle().
+			Align(lipgloss.Center).
 			Padding(0, 1).
 			Background(lipgloss.Color("7")).
 			Foreground(special)
@@ -329,16 +330,32 @@ func Run() {
 
 		logger.Debugf("%v", cpuPercent)
 
+		// It should be the largest content (the title will be on multiple lines if larger).
+		// Use it's width for later content.
+		disksTable := table.New().Border(lipgloss.NormalBorder()).
+			StyleFunc(func(row, col int) lipgloss.Style {
+				switch {
+				case row != table.HeaderRow && col == 0:
+					return tableCellLeftStyle
+				case row != table.HeaderRow && col == 3:
+					return tableCellRightStyle
+				default:
+					return tableCellStyle
+				}
+			}).
+			Headers("", "Type", "Used", "%").
+			Rows(ArrayMap(disksStats, func(v DiskStat) []string {
+				return []string{v.MountedOn, v.Type, v.Used + "/" + v.Size, v.UsePercent}
+			})...).Render()
+
+		// the largest width
+		largestWidth := lipgloss.Width(disksTable)
+
 		content := lipgloss.JoinVertical(lipgloss.Left,
-			titleStyle.Render("STATS"),
-			subtitleStyle.Render("CPU "),
+			titleStyle.Width(largestWidth).Render(fmt.Sprintf("STAT %s", val.Host)),
+			subtitleStyle.Width(largestWidth).Render("CPU "),
 			strconv.FormatFloat(float64(cpuPercent), 'f', 2, 32)+"%",
-			subtitleStyle.Render("Memory"),
-			/*
-				strings.Join(ArrayMap(memStats, func(v MemStat) string {
-					return v.String()
-				}), "\n"),
-			*/
+			subtitleStyle.Width(largestWidth).Render("Memory"),
 			table.New().Border(lipgloss.NormalBorder()).
 				StyleFunc(func(row, col int) lipgloss.Style {
 					switch {
@@ -352,31 +369,11 @@ func Run() {
 				Rows(ArrayMap(memStats, func(v MemStat) []string {
 					return []string{v.Type, v.Used, v.Total}
 				})...).Render(),
-			subtitleStyle.Render("Disks"),
-			/*
-				strings.Join(ArrayMap(disksStats, func(v DiskStat) string {
-					return v.String()
-				}), "\n"),
-			*/
-			table.New().Border(lipgloss.NormalBorder()).
-				StyleFunc(func(row, col int) lipgloss.Style {
-					switch {
-					case row != table.HeaderRow && col == 0:
-						return tableCellLeftStyle
-					case row != table.HeaderRow && col == 3:
-						return tableCellRightStyle
-					default:
-						return tableCellStyle
-					}
-				}).
-				Headers("", "Type", "Used", "%").
-				Rows(ArrayMap(disksStats, func(v DiskStat) []string {
-					return []string{v.MountedOn, v.Type, v.Used + "/" + v.Size, v.UsePercent}
-				})...).Render(),
+			subtitleStyle.Width(largestWidth).Render("Disks"),
+			disksTable,
 		)
 
 		result := infoStyle.
-			//Width(lipgloss.Width(content) + 4).
 			PaddingLeft(2).
 			PaddingRight(2).
 			Render(content)

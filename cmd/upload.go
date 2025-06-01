@@ -24,24 +24,15 @@ var uploadCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(uploadCmd)
 
-	// Here you will define your flags and configuration settings.
+	// Point to a string variable in which to store the value of the flag (needed for same name flags between commands)
+	uploadCmd.PersistentFlags().StringVarP(&globals.LocalFileFlag, "local-file", "l", "", "local file (source)")
+	uploadCmd.PersistentFlags().StringVarP(&globals.RemoteFileFlag, "remote-file", "r", "", "remote file path (target)")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// uploadCmd.PersistentFlags().String("foo", "", "A help for foo")
+	uploadCmd.MarkPersistentFlagRequired("local-file")
+	uploadCmd.MarkPersistentFlagRequired("remote")
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// uploadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	uploadCmd.MarkPersistentFlagFilename("local-file")
 
-	uploadCmd.PersistentFlags().StringP("source", "s", "", "source (local file)")
-	uploadCmd.PersistentFlags().StringP("target", "t", "", "target (remote path)")
-
-	uploadCmd.MarkPersistentFlagRequired("source")
-	uploadCmd.MarkPersistentFlagRequired("target")
-
-	uploadCmd.MarkPersistentFlagFilename("source")
-
-	viper.BindPFlag("source", uploadCmd.PersistentFlags().Lookup("source"))
-	viper.BindPFlag("target", uploadCmd.PersistentFlags().Lookup("target"))
+	viper.BindPFlag("localFile", uploadCmd.PersistentFlags().Lookup("local-file"))
+	viper.BindPFlag("remoteFile", uploadCmd.PersistentFlags().Lookup("remote-file"))
 }
