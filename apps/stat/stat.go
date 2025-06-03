@@ -47,6 +47,10 @@ var (
 	subtle  = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	special = lipgloss.AdaptiveColor{Light: "230", Dark: "#010102"}
 
+	// Spinner.
+	spinnerStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("6"))
+
 	// Table cell.
 	tableCellStyle      = lipgloss.NewStyle().Align(lipgloss.Center).PaddingLeft(1).PaddingRight(1)
 	tableCellLeftStyle  = lipgloss.NewStyle().Align(lipgloss.Left).PaddingLeft(1).PaddingRight(1)
@@ -71,7 +75,6 @@ var (
 
 	infoStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("7")).
 			BorderTop(true).
 			BorderLeft(true).
 			BorderRight(true).
@@ -242,7 +245,8 @@ func Run() {
 
 		_ = spinner.New().
 			Type(spinner.MiniDot).
-			Title(" Please wait ...").
+			Title(spinnerStyle.Render(" Please wait ...")).
+			Style(spinnerStyle).
 			Action(func() {
 				if err := cpuSession.Run("grep --max-count=1 '^cpu.' /proc/stat && sleep 1 && grep --max-count=1 '^cpu.' /proc/stat"); err != nil {
 					logger.Error(b.String())
