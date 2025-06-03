@@ -161,7 +161,28 @@ func createClientConfig(hc HostConfig) *ssh.ClientConfig {
 
 		signer, err := ssh.ParsePrivateKey(privateKey)
 		if err != nil {
-			logger.Fatalf("Unable to parse private key: %v", err)
+			errString := fmt.Sprintf("%v", err)
+			logger.Debugf("error string: %s", errString)
+			if strings.Contains(errString, "passphrase protected") {
+				var passphrase string
+				form := runFormPassphrase(
+					"",
+				)
+				if form.State == huh.StateCompleted {
+					passphrase = form.Get("passphrase").(string)
+				}
+				if passphrase == "" {
+					logger.Debug("Empty passphrase")
+					logger.Fatalf("Unable to parse private key: %v", err)
+				}
+				signer, err = ssh.ParsePrivateKeyWithPassphrase(privateKey, []byte(passphrase))
+				logger.Debug("ParsePrivateKeyWithPassphrase")
+				if err != nil {
+					logger.Fatalf("Unable to parse private key: %v", err)
+				}
+			} else {
+				logger.Fatalf("Unable to parse private key: %v", err)
+			}
 		}
 
 		config.Auth = []ssh.AuthMethod{
