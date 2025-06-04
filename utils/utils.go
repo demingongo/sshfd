@@ -234,7 +234,7 @@ func RequestPty(session *ssh.Session) error {
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
 
-	if err := session.RequestPty("linux", 80, 40, modes); err != nil {
+	if err := session.RequestPty("linux", 40, 80, modes); err != nil {
 		logger.Errorf("Request for pseudo terminal failed: %v", err)
 		return err
 	}
