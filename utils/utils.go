@@ -263,7 +263,6 @@ func CreateSCPClient(hc HostConfig) (*scp.Client, error) {
 	// Connect to the remote server
 	err := client.Connect()
 	if err != nil {
-		//fmt.Println("Couldn't establish a connection to the remote server ", err)
 		return &client, err
 	}
 
